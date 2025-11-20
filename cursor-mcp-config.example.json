@@ -1,0 +1,86 @@
+{
+  "mcpServers": {
+    "telegram-mcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-v",
+        "telegram-mcp-data:/app/data:rw",
+        "-e",
+        "TG_APP_ID",
+        "-e",
+        "TG_API_HASH",
+        "-e",
+        "TG_SESSION_PATH=/app/data/session.json",
+        "telegram-mcp"
+      ],
+      "env": {
+        "TG_APP_ID": "<your-telegram-app-id>",
+        "TG_API_HASH": "<your-telegram-api-hash>"
+      }
+    },
+    "better-browser": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-p",
+        "6080:6080",
+        "-v",
+        "/tmp:/tmp:rw",
+        "-e",
+        "GOOGLE_API_KEY",
+        "-e",
+        "BROWSER_USE_LLM_MODEL",
+        "-e",
+        "BROWSER_USE_HEADLESS",
+        "-e",
+        "BROWSER_USE_LOGGING_LEVEL",
+        "-e",
+        "BROWSER_USE_DEBUG_LOGS",
+        "-e",
+        "NOVNC_ENABLED=true",
+        "-e",
+        "DISPLAY_WIDTH=1920",
+        "-e",
+        "DISPLAY_HEIGHT=1080",
+        "better-browser"
+      ],
+      "env": {
+        "GOOGLE_API_KEY": "",
+        "BROWSER_USE_LLM_MODEL": "gemini-2.5-computer-use-preview-10-2025",
+        "BROWSER_USE_HEADLESS": "false",
+        "BROWSER_USE_LOGGING_LEVEL": "warning",
+        "BROWSER_USE_DEBUG_LOGS": "false",
+        "BROWSER_WINDOW_WIDTH": 430,
+        "BROWSER_WINDOW_HEIGHT": 1200
+      }
+    },
+    "mcp-debugger": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-v",
+        "/home/odinykt/projects/RealReview:/workspace:rw",
+        "-v",
+        "/home/odinykt/projects/RealReview/temp:/tmp:rw",
+        "mcp-debugger:latest-output2",
+        "stdio",
+        "--log-level",
+        "debug",
+        "--log-file",
+        "/tmp/mcp-debugger.log"
+      ],
+      "disabled": false,
+      "autoApprove": ["create_debug_session", "set_breakpoint", "get_variables"],
+      "timeout": 60
+    }
+  }
+}
+
+

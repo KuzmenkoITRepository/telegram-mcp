@@ -44,7 +44,8 @@ The Model Context Protocol (MCP) is a system that lets AI apps, like Claude Desk
 - [x] List dialogs with optional unread filter (`tool: tg_dialogs`)
 - [x] Mark dialog as read (`tool: tg_read`)
 - [x] Retrieve messages from specific dialog (`tool: tg_dialog`)
-- [x] Send draft messages to any dialog (`tool: tg_send`)
+- [x] Send messages to any dialog (`tool: tg_send`)
+- [x] Wait for a message in a dialog matching specified criteria (`tool: tg_wait_for_message`)
 
 ### Prompt examples
 
@@ -65,6 +66,8 @@ Here are some example prompts you can use with AI assistants:
 - "Monitor specific chat for updates about [topic]"
 - "Draft a polite response to the last message in [chat]"
 - "Check if there are any unanswered questions in my chats"
+- "Wait for a response from [bot] matching pattern [regex]"
+- "Wait up to 5 minutes for a message containing 'analysis complete' in [dialog]"
 
 ## Installation
 

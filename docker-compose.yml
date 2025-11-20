@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  telegram-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: telegram-mcp
+    environment:
+      - TG_APP_ID=${TG_APP_ID}
+      - TG_API_HASH=${TG_API_HASH}
+      - TG_SESSION_PATH=/app/data/session.json
+      - TG_DEBUG_LOG=${TG_DEBUG_LOG:-}
+    volumes:
+      # Persist session data between container restarts
+      - telegram-mcp-data:/app/data
+    stdin_open: true
+    tty: true
+    # Keep container running
+    command: ["/app/telegram-mcp"]
+    restart: unless-stopped
+
+volumes:
+  telegram-mcp-data:
+    driver: local
+
+

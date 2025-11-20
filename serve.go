@@ -97,7 +97,7 @@ func serve(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("register dialogs tool: %w", err)
 	}
 
-	err = server.RegisterTool("tg_send", "Send draft message to dialog", client.SendDraft)
+	err = server.RegisterTool("tg_send", "Send message to dialog", client.SendDraft)
 	if err != nil {
 		return fmt.Errorf("register dialogs tool: %w", err)
 	}
@@ -105,6 +105,11 @@ func serve(ctx context.Context, cmd *cli.Command) error {
 	err = server.RegisterTool("tg_read", "Mark dialog messages as read", client.ReadHistory)
 	if err != nil {
 		return fmt.Errorf("register read tool: %w", err)
+	}
+
+	err = server.RegisterTool("tg_wait_for_message", "Wait for a message in a dialog matching specified criteria", client.WaitForMessage)
+	if err != nil {
+		return fmt.Errorf("register wait for message tool: %w", err)
 	}
 
 	if err := server.Serve(); err != nil {

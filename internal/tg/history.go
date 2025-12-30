@@ -69,33 +69,45 @@ func (c *Client) GetHistory(args HistoryArguments) (*mcp.ToolResponse, error) {
 	return mcp.NewToolResponse(mcp.NewTextContent(string(jsonData))), nil
 }
 
+// getInputPeerFromName resolves a dialog name to InputPeerClass.
+// Supports custom formats: usr[user_id:access_hash], cht[chat_id], chn[channel_id:access_hash]
+// or standard username/dialog name resolution.
 func getInputPeerFromName(ctx context.Context, api *tg.Client, name string) (tg.InputPeerClass, error) {
 	isCustom := strings.Contains(name, "[") && strings.Contains(name, "]")
 
+	// Check custom formats first (more specific)
 	switch {
-	case strings.HasPrefix(name, "chn") && isCustom:
-		var channelPeer tg.InputPeerChannel
-		_, err := fmt.Sscanf(name, "chn[%d:%d]", &channelPeer.ChannelID, &channelPeer.AccessHash)
-		if err != nil {
-			return nil, errors.Wrapf(err, "scan channel peer(%q)", name)
+	case strings.HasPrefix(name, "usr") && isCustom:
+		var userPeer tg.InputPeerUser
+		n, err := fmt.Sscanf(name, "usr[%d:%d]", &userPeer.UserID, &userPeer.AccessHash)
+		if err != nil || n != 2 {
+			return nil, errors.Wrapf(err, "scan user peer(%q): expected format usr[user_id:access_hash]", name)
 		}
+		return &userPeer, nil
 
-		return &channelPeer, nil
 	case strings.HasPrefix(name, "cht") && isCustom:
 		var chatPeer tg.InputPeerChat
-		_, err := fmt.Sscanf(name, "cht[%d]", &chatPeer.ChatID)
-		if err != nil {
-			return nil, errors.Wrapf(err, "scan chat peer(%q)", name)
+		n, err := fmt.Sscanf(name, "cht[%d]", &chatPeer.ChatID)
+		if err != nil || n != 1 {
+			return nil, errors.Wrapf(err, "scan chat peer(%q): expected format cht[chat_id]", name)
 		}
-
 		return &chatPeer, nil
+
+	case strings.HasPrefix(name, "chn") && isCustom:
+		var channelPeer tg.InputPeerChannel
+		n, err := fmt.Sscanf(name, "chn[%d:%d]", &channelPeer.ChannelID, &channelPeer.AccessHash)
+		if err != nil || n != 2 {
+			return nil, errors.Wrapf(err, "scan channel peer(%q): expected format chn[channel_id:access_hash]", name)
+		}
+		return &channelPeer, nil
+
 	default:
+		// Try to resolve as username or dialog name
 		sender := message.NewSender(api)
 		inputPeer, err := sender.Resolve(name).AsInputPeer(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("failed to resolve name: %w", err)
+			return nil, fmt.Errorf("failed to resolve name %q: %w", name, err)
 		}
-
 		return inputPeer, nil
 	}
 }
@@ -156,6 +168,7 @@ func (h *history) Info() []MessageInfo {
 		}
 
 		messages = append(messages, MessageInfo{
+			ID:   m.ID,
 			Who:  who,
 			When: time.Unix(int64(m.Date), 0).Format(time.DateTime),
 			Text: m.Message,

@@ -34,17 +34,22 @@ type DialogsArguments struct {
 }
 
 type MessageInfo struct {
-	Who      string `json:"who,omitempty"`
-	When     string `json:"when"`
-	Text     string `json:"text,omitempty"`
-	IsUnread bool   `json:"is_unread,omitempty"`
-	ts       int
+	ID        int    `json:"id,omitempty"`        // Message ID for reactions and other operations
+	Who       string `json:"who,omitempty"`
+	When      string `json:"when"`
+	Text      string `json:"text,omitempty"`
+	IsUnread  bool   `json:"is_unread,omitempty"`
+	ts        int
 }
 
 type DialogInfo struct {
 	Name        string       `json:"name,omitempty"`
 	Type        string       `json:"type"`
 	Title       string       `json:"title"`
+	UserID      int64        `json:"user_id,omitempty"`      // For users
+	ChatID      int64        `json:"chat_id,omitempty"`      // For chats
+	ChannelID   int64        `json:"channel_id,omitempty"`   // For channels
+	AccessHash  int64        `json:"access_hash,omitempty"` // For users and channels
 	LastMessage *MessageInfo `json:"last_message,omitempty"`
 	Empty       bool         `json:"empty,omitempty"`
 }
@@ -251,6 +256,7 @@ func (d *dialogs) processDialog(dialogItem *tg.Dialog) (DialogInfo, error) {
 		}
 
 		info.LastMessage = &MessageInfo{
+			ID:       msg.ID,
 			Who:      who,
 			When:     time.Unix(int64(msg.Date), 0).Format(time.DateTime),
 			ts:       msg.Date,
@@ -270,6 +276,24 @@ func (d *dialogs) processDialog(dialogItem *tg.Dialog) (DialogInfo, error) {
 	}
 
 	info.Type = string(d.getType(dialogItem))
+
+	// Fill ID and AccessHash based on peer type
+	switch p := dialogItem.Peer.(type) {
+	case *tg.PeerUser:
+		if user, ok := d.users[p.GetUserID()]; ok {
+			info.UserID = user.ID
+			info.AccessHash = user.AccessHash
+		}
+		// If user not found, UserID and AccessHash remain 0 (zero values)
+	case *tg.PeerChat:
+		info.ChatID = p.GetChatID()
+	case *tg.PeerChannel:
+		if channel, ok := d.channels[p.GetChannelID()]; ok {
+			info.ChannelID = channel.ID
+			info.AccessHash = channel.AccessHash
+		}
+		// If channel not found, ChannelID and AccessHash remain 0 (zero values)
+	}
 
 	if info.LastMessage == nil {
 		info.Empty = true

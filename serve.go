@@ -48,9 +48,14 @@ func serve(ctx context.Context, cmd *cli.Command) error {
 
 		log.Info().RawJSON("answer", []byte(answer.Content[0].TextContent.Text)).Msg("Check GetDialogs: OK")
 
-		answer, err = client.GetHistory(tg.HistoryArguments{Name: os.Getenv("TG_TEST_USERNAME")})
-		if err != nil {
-			return fmt.Errorf("get nickname history: %w", err)
+		testUsername := os.Getenv("TG_TEST_USERNAME")
+		if testUsername != "" {
+			answer, err = client.GetHistory(tg.HistoryArguments{Name: testUsername})
+			if err != nil {
+				return fmt.Errorf("get nickname history: %w", err)
+			}
+		} else {
+			log.Info().Msg("TG_TEST_USERNAME not set, skipping nickname history test")
 		}
 
 		answer, err = client.GetHistory(tg.HistoryArguments{Name: "cht[4626931529]"})
@@ -65,18 +70,22 @@ func serve(ctx context.Context, cmd *cli.Command) error {
 
 		log.Info().RawJSON("answer", []byte(answer.Content[0].TextContent.Text)).Msg("Check GetHistory: OK")
 
-		answer, err = client.SendDraft(tg.DraftArguments{Name: os.Getenv("TG_TEST_USERNAME"), Text: "test draft"})
-		if err != nil {
-			log.Err(err).Msg("Check SendDraft: FAIL")
-		} else {
-			log.Info().RawJSON("answer", []byte(answer.Content[0].TextContent.Text)).Msg("Check SendDraft: OK")
-		}
+		if testUsername != "" {
+			answer, err = client.SendDraft(tg.DraftArguments{Name: testUsername, Text: "test draft"})
+			if err != nil {
+				log.Err(err).Msg("Check SendDraft: FAIL")
+			} else {
+				log.Info().RawJSON("answer", []byte(answer.Content[0].TextContent.Text)).Msg("Check SendDraft: OK")
+			}
 
-		answer, err = client.ReadHistory(tg.ReadArguments{Name: os.Getenv("TG_TEST_USERNAME")})
-		if err != nil {
-			log.Err(err).Msg("Check ReadHistory: FAIL")
+			answer, err = client.ReadHistory(tg.ReadArguments{Name: testUsername})
+			if err != nil {
+				log.Err(err).Msg("Check ReadHistory: FAIL")
+			} else {
+				log.Info().RawJSON("answer", []byte(answer.Content[0].TextContent.Text)).Msg("Check ReadHistory: OK")
+			}
 		} else {
-			log.Info().RawJSON("answer", []byte(answer.Content[0].TextContent.Text)).Msg("Check ReadHistory: OK")
+			log.Info().Msg("TG_TEST_USERNAME not set, skipping SendDraft and ReadHistory tests")
 		}
 
 		return nil
@@ -97,12 +106,12 @@ func serve(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("register dialogs tool: %w", err)
 	}
 
-	err = server.RegisterTool("tg_send", "Send message to dialog", client.SendDraft)
+	err = server.RegisterTool("tg_send", "Send message or media file to dialog. Supports text messages and media files (photo, document, video, audio). Use 'file_path' to send media, 'text' for text messages or caption.", client.SendDraft)
 	if err != nil {
 		return fmt.Errorf("register dialogs tool: %w", err)
 	}
 
-	err = server.RegisterTool("tg_read", "Mark dialog messages as read", client.ReadHistory)
+	err = server.RegisterTool("tg_read", "Mark all unread messages in a dialog as read", client.ReadHistory)
 	if err != nil {
 		return fmt.Errorf("register read tool: %w", err)
 	}
@@ -110,6 +119,16 @@ func serve(ctx context.Context, cmd *cli.Command) error {
 	err = server.RegisterTool("tg_wait_for_message", "Wait for a message in a dialog matching specified criteria", client.WaitForMessage)
 	if err != nil {
 		return fmt.Errorf("register wait for message tool: %w", err)
+	}
+
+	err = server.RegisterTool("tg_send_reaction", "Send a reaction (emoji) to a message in a dialog", client.SendReaction)
+	if err != nil {
+		return fmt.Errorf("register send reaction tool: %w", err)
+	}
+
+	err = server.RegisterTool("tg_get_reactions", "Get reactions for a message in a dialog", client.GetReactions)
+	if err != nil {
+		return fmt.Errorf("register get reactions tool: %w", err)
 	}
 
 	if err := server.Serve(); err != nil {

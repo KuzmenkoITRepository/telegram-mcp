@@ -3,38 +3,32 @@ FROM golang:1.24-alpine AS builder
 
 WORKDIR /build
 
-# Copy go mod files
+# Copy go mod files first for better caching
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy source code
+# Copy source code and build
 COPY . .
-
-# Build the application
 ENV CGO_ENABLED=0
 RUN go build -o telegram-mcp .
 
-# Runtime stage
+# Runtime stage - use distroless or minimal alpine
 FROM alpine:latest
 
-# Install ca-certificates for HTTPS requests
-RUN apk --no-cache add ca-certificates
+# Install only ca-certificates for HTTPS (no package manager cache)
+RUN apk --no-cache --update add ca-certificates && \
+    rm -rf /var/cache/apk/* /tmp/*
 
 WORKDIR /app
 
-# Copy binary from builder
+# Copy binary from builder (already executable)
 COPY --from=builder /build/telegram-mcp /app/telegram-mcp
 
 # Create directory for session storage
 RUN mkdir -p /app/data
 
-# Set default session path
 ENV TG_SESSION_PATH=/app/data/session.json
 
-# Make binary executable
-RUN chmod +x /app/telegram-mcp
-
-# Run the application
 ENTRYPOINT ["/app/telegram-mcp"]
 
 
